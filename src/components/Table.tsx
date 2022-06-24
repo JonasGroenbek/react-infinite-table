@@ -180,16 +180,15 @@ export default function Table({
       return <p>Der er intet indhold</p>
     } else {
       return (
-        <div className="nested-table">
-          <div className="nested-table--content">
-            <div className="nested-table-options">
+        <div>
+          <div>
+            <div>
               <div
-                className="row-close"
                 onClick={() => setExpandedRow(undefined)}
               >
                 <IconX />
               </div>
-              <div className="parent-row-info">
+              <div>
                 <p>{expandConfig.datasourceIndex}</p>
               </div>
             </div>
@@ -218,7 +217,6 @@ export default function Table({
           width={column.width}
           expander={column.expander}
           key={column.key}
-          className="mtr-column"
           onClick={() => {
             if (column.onClick !== undefined) {
               column.onClick(element.id)
@@ -276,7 +274,6 @@ export default function Table({
             }}
             expanded={expandedRow === element.id}
             key={element.id}
-            className="mtr-row"
           >
             {generateColumns(element)}
           </Row>
@@ -288,14 +285,13 @@ export default function Table({
 
   const generateHeader = () => {
     return (
-      <Row className="mtr-row mtr-header-row">
+      <Row>
         {columns.map(column => {
           return (
             <HeaderColumn
               width={column.width}
-              className="mtr-column mtr-header-column"
             >
-              <div className="cell-content">
+              <div>
                 {/** udkommenter nedenstående 3 linjer */}
                 <label>{column.headerText}</label>
               </div>
@@ -312,8 +308,8 @@ export default function Table({
       ref={ref => (tableRef.current = ref)}
       nested={nested}
     >
-      <div className="mtr-table-container">
-        <div className="mtr-table">
+      <div>
+        <div>
           {generateHeader()}
           {generateRows()}
         </div>
