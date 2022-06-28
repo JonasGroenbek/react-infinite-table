@@ -1,22 +1,19 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, createRef } from 'react'
 import styled from 'styled-components'
 import { scrollToCurrent } from './scroll'
 import IconX from './IconX'
 
-interface TableContainer {
-    nested: boolean
-    scrollable: boolean
+interface TableContainerProps {
+    nested?: boolean
+    isScrollable?: boolean
 }
-const TableContainer = styled.div<TableContainer>`
-${({ nested }) =>
-  nested &&
-  `
-`};
-`
+
+const TableContainer = styled.div<TableContainerProps>``
 
 interface Row {
     expanded?: boolean
 }
+
 const Row = styled.div<Row>`
   ${({ expanded }) =>
     expanded &&
@@ -47,17 +44,11 @@ const Button = styled.button.attrs({
   className: 'myClass'
 })``
 
-const PaginationContainer = styled.div`
-`
-const PaginationButtonContainer = styled.div`
-`
-const PaginationText = styled.p`
-`
 
 interface ExpandConfig {
     columns: any[]
     datasourceIndex: string
-    scrollable: boolean
+    isScrollable: boolean
     expandConfig?: ExpandConfig
 }
 
@@ -67,62 +58,51 @@ interface InfinityScrollConfig {
 
 interface TableProps {
     columns: any[];
-    paginationConfig?: any;
     expandConfig?: ExpandConfig,
     nested?: boolean;
-    scrollable?: boolean;
+    isScrollable?: boolean;
     infinityScrollConfig?: InfinityScrollConfig;
     minWidth?: number;
     datasource: any[];
 }
 export default function Table({
-    paginationConfig,
     expandConfig,
     nested,
-    scrollable,
+    isScrollable,
     infinityScrollConfig,
     datasource,
     columns,
-    minWidth,
 }: TableProps) {
-
-  const [expandedRow, setExpandedRow] = useState(undefined)
-  const [paginationStart, setPaginationStart] = useState(0)
-  const [infinityScrollEnd, setInfinityScrollEnd] = useState(
-    infinityScrollConfig ? infinityScrollConfig.gap : null
+  console.log('in')
+  const [expandedRow, setExpandedRow] = useState<number>()
+  console.log('out')
+  const [infinityScrollEnd, setInfinityScrollEnd] = useState<number>(
+    infinityScrollConfig ? infinityScrollConfig.gap : 100
   )
-  const [filterText, setFilterText] = useState('')
-  const [filterColumn, setFilterColumn] = useState('*')
-  const [scrollY, setScrollY] = useState(0)
-  const [sortConfig, setSortConfig] = useState(undefined)
-  const rowRefs = useRef([])
-  const tableRef = useRef<HTMLDivElement>(null)
-
-  const isDropdownSelectSelected = (columnSortConfig, name) => {
-    if (sortConfig?.key !== columnSortConfig.key) {
-      return false
-    }
-    if (sortConfig?.name === name) {
-      return true
-    }
-    if (!sortConfig && columnSortConfig.defaultText === name) {
-      return true
-    }
-    return false
-  }
+  const [scrollY, setScrollY] = useState<number>(0)
+  const [rowRefs, setRowRefs] = useState<Array<React.MutableRefObject<HTMLDivElement>>>([])
+  const tableRef = useRef<null | HTMLDivElement>()
 
   const updateScrollY = () => setScrollY(window.pageYOffset)
 
+  //when a new row expands, access create the references for scrolling
   useEffect(() => {
-    if (infinityScrollConfig && !paginationConfig) {
-      if (tableRef.current.getBoundingClientRect().bottom < scrollY) {
+    setRowRefs((rowRefs: any) =>
+    datasource
+      .map((_, i) => rowRefs[i] || createRef()),
+  );
+  }, [datasource])
+
+  useEffect(() => {
+    if (infinityScrollConfig) {
+      if (tableRef?.current && tableRef.current.getBoundingClientRect().bottom < scrollY) {
         setInfinityScrollEnd(infinityScrollEnd + infinityScrollConfig.gap)
       }
     }
-  }, [infinityScrollConfig, infinityScrollEnd, paginationConfig, scrollY])
+  }, [infinityScrollConfig, infinityScrollEnd, scrollY])
 
   useEffect(() => {
-    if (infinityScrollConfig && !paginationConfig) {
+    if (infinityScrollConfig) {
       const listenScroll = () => {
         window.addEventListener('scroll', updateScrollY)
       }
@@ -131,53 +111,19 @@ export default function Table({
         window.removeEventListener('scroll', updateScrollY)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const generatePaginationComponent = () =>
-    paginationConfig && (
-      <PaginationContainer>
-        <PaginationText>
-          {`${paginationStart}-${
-            paginationStart + paginationConfig.limit > datasource.length
-              ? datasource.length
-              : paginationStart + paginationConfig.limit
-          } / ${datasource.length}`}
-        </PaginationText>
-        <PaginationButtonContainer>
-          {paginationStart > 0 && (
-            <Button
-              onClick={() => {
-                setExpandedRow(undefined)
-                setPaginationStart(paginationStart - paginationConfig.limit)
-              }}
-            >
-              Tilbage
-            </Button>
-          )}
-          {paginationStart + paginationConfig.limit <
-            datasource.length && (
-            <Button
-              onClick={() => {
-                setExpandedRow(undefined)
-                setPaginationStart(paginationStart + paginationConfig.limit)
-              }}
-            >
-              Videre
-            </Button>
-          )}
-        </PaginationButtonContainer>
-      </PaginationContainer>
-    )
+  const shouldExpandRow = (id: number)=> expandedRow === id && expandConfig !== undefined
 
-  const shouldExpandRow = id => expandedRow === id && expandConfig !== undefined
-
-  const expandedContent = element => {
+  const expandedContent = (element: any) => {
+    if(!expandConfig){
+      return 
+    }
     if (
       element[expandConfig.datasourceIndex] === undefined ||
       element[expandConfig.datasourceIndex].length === 0
     ) {
-      return <p>Der er intet indhold</p>
+      return <p>No content</p>
     } else {
       return (
         <div>
@@ -193,13 +139,11 @@ export default function Table({
               </div>
             </div>
             <Table columns={columns} datasource={[element]} />
-            <Table
-            
+            <Table   
               columns={expandConfig.columns}
-              scrollable={expandConfig.scrollable}
+              isScrollable={expandConfig.isScrollable}
               datasource={element[expandConfig.datasourceIndex]}
               expandConfig={expandConfig.expandConfig}
-              //paginationConfig={expandConfig.paginationConfig}
               nested={true}
             />
           </div>
@@ -208,7 +152,7 @@ export default function Table({
     }
   }
 
-  const generateColumns = element => {
+  const generateColumns = (element: any) => {
     return columns.map((column, i) => {
       return (
         <Column
@@ -225,8 +169,8 @@ export default function Table({
               if (expandedRow === element.id) {
                 setExpandedRow(undefined)
               } else {
-                if (scrollable) {
-                  scrollToCurrent(rowRefs.current[element.id])
+                if (isScrollable && rowRefs[i]) {
+                  scrollToCurrent(rowRefs[i])
                 }
                 setExpandedRow(element.id)
               }
@@ -247,19 +191,7 @@ export default function Table({
       return
     }
 
-    //sorting
-    if (sortConfig && sortConfig.sorter) {
-      elements = elements.sort(sortConfig.sorter)
-    }
-
-    //pagination
-    if (paginationConfig) {
-      elements = elements.slice(
-        paginationStart,
-        paginationStart + paginationConfig.limit
-      )
-    }
-    if (infinityScrollConfig && !paginationConfig) {
+    if (infinityScrollConfig) {
       elements = elements.slice(0, infinityScrollEnd + infinityScrollConfig.gap)
     }
 
@@ -267,11 +199,7 @@ export default function Table({
       return (
         <>
           <Row
-            ref={ref => {
-              if (!rowRefs.current[element.id] && scrollable) {
-                rowRefs.current[element.id] = ref
-              }
-            }}
+            ref={() => rowRefs[element.id] ?? null}
             expanded={expandedRow === element.id}
             key={element.id}
           >
@@ -292,7 +220,6 @@ export default function Table({
               width={column.width}
             >
               <div>
-                {/** udkommenter nedenstående 3 linjer */}
                 <label>{column.headerText}</label>
               </div>
             </HeaderColumn>
@@ -304,8 +231,8 @@ export default function Table({
 
   return (
     <TableContainer
-      scrollable={scrollable}
-      ref={ref => (tableRef.current = ref)}
+      isScrollable={isScrollable}
+      ref={() => tableRef}
       nested={nested}
     >
       <div>
@@ -313,7 +240,6 @@ export default function Table({
           {generateHeader()}
           {generateRows()}
         </div>
-        {generatePaginationComponent()}
       </div>
     </TableContainer>
   )
