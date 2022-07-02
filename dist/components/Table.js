@@ -30,37 +30,50 @@ const react_1 = __importStar(require("react"));
 const styled_components_1 = __importDefault(require("styled-components"));
 const scroll_1 = require("./scroll");
 const IconX_1 = __importDefault(require("./IconX"));
-const TableContainer = styled_components_1.default.div ``;
-const Row = styled_components_1.default.div `
-  ${({ expanded }) => expanded &&
-    `
-    `};
+const TableContainer = styled_components_1.default.div `
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    margin-bottom: 30px;
+    ${({ nested }) => nested &&
+    'padding:2rem; background-color:#f9f9f9;border-left: 1px solid rgba(0, 0, 0, 0.05);border-right: 1px solid rgba(0, 0, 0, 0.05);border-bottom: 1px solid rgba(0, 0, 0, 0.05);'};
 `;
-const Column = styled_components_1.default.div `
-   ${({ width }) => `flex-shrink: ${width ? '0' : '1'}`};
-   ${({ width }) => width && `flex-basis: ${width}px;`}
-   ${({ expander }) => expander && 'cursor: pointer;'}
+const Row = styled_components_1.default.div `
+    display: flex;
+    flex: 0 100px 1em;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    height: 80px;
+    ${({ expanded }) => expanded &&
+    'border-bottom: 1px solid rgba(0, 0, 0, 0.05); background-color:#f1f1f1;margin-bottom:0!important;'};
 `;
 const HeaderColumn = styled_components_1.default.div `
-     ${({ width }) => `flex-shrink: ${width ? '0' : '1'}`};
-     ${({ width }) => width && `flex-basis: ${width}px;`}
+    ${({ width }) => `flex-shrink: ${width ? '0' : '1'}`};
+    ${({ width }) => width && `flex-basis: ${width}px;`}
 `;
-const Button = styled_components_1.default.button.attrs({
-    className: 'myClass'
-}) ``;
+const Column = styled_components_1.default.div `
+    ${({ width }) => `flex-shrink: ${width ? '0' : '1'}`};
+    ${({ width }) => width && `flex-basis: ${width}px;`}
+    ${({ expander }) => expander && 'cursor: pointer;'}
+`;
 function Table({ expandConfig, nested, isScrollable, infinityScrollConfig, datasource, columns, }) {
-    console.log('in');
-    const [expandedRow, setExpandedRow] = (0, react_1.useState)();
-    console.log('out');
+    const [expandedRow, setExpandedRow] = (0, react_1.useState)(null);
     const [infinityScrollEnd, setInfinityScrollEnd] = (0, react_1.useState)(infinityScrollConfig ? infinityScrollConfig.gap : 100);
     const [scrollY, setScrollY] = (0, react_1.useState)(0);
     const [rowRefs, setRowRefs] = (0, react_1.useState)([]);
     const tableRef = (0, react_1.useRef)();
+    const getRefKey = (index) => {
+        var _a;
+        return ((_a = rowRefs[index]) === null || _a === void 0 ? void 0 : _a.current) ? JSON.stringify(rowRefs[index].current) : null;
+    };
+    const isExpanded = (index) => {
+        return getRefKey(index) !== null && getRefKey(index) === expandedRow;
+    };
     const updateScrollY = () => setScrollY(window.pageYOffset);
-    //when a new row expands, access create the references for scrolling
+    // when a new row expands, access create the references for scrolling
     (0, react_1.useEffect)(() => {
-        setRowRefs((rowRefs) => datasource
-            .map((_, i) => rowRefs[i] || (0, react_1.createRef)()));
+        setRowRefs((rowRefs) => datasource.map((_, i) => rowRefs[i] || (0, react_1.createRef)()));
     }, [datasource]);
     (0, react_1.useEffect)(() => {
         if (infinityScrollConfig) {
@@ -80,7 +93,7 @@ function Table({ expandConfig, nested, isScrollable, infinityScrollConfig, datas
             };
         }
     }, []);
-    const shouldExpandRow = (id) => expandedRow === id && expandConfig !== undefined;
+    const shouldExpandRow = (jsonRef) => jsonRef !== null && jsonRef !== void 0 ? jsonRef : (expandedRow === jsonRef && expandConfig !== undefined);
     const expandedContent = (element) => {
         if (!expandConfig) {
             return;
@@ -93,35 +106,36 @@ function Table({ expandConfig, nested, isScrollable, infinityScrollConfig, datas
             return (react_1.default.createElement("div", null,
                 react_1.default.createElement("div", null,
                     react_1.default.createElement("div", null,
-                        react_1.default.createElement("div", { onClick: () => setExpandedRow(undefined) },
-                            react_1.default.createElement(IconX_1.default, null)),
+                        react_1.default.createElement("div", { onClick: () => setExpandedRow(null) },
+                            react_1.default.createElement(IconX_1.default, { height: 10, width: 10 })),
                         react_1.default.createElement("div", null,
                             react_1.default.createElement("p", null, expandConfig.datasourceIndex))),
                     react_1.default.createElement(Table, { columns: columns, datasource: [element] }),
                     react_1.default.createElement(Table, { columns: expandConfig.columns, isScrollable: expandConfig.isScrollable, datasource: element[expandConfig.datasourceIndex], expandConfig: expandConfig.expandConfig, nested: true }))));
         }
     };
-    const generateColumns = (element) => {
+    const generateColumns = (element, i) => {
         return columns.map((column, i) => {
-            return (react_1.default.createElement(Column, Object.assign({}, column.style, { amountOfColumns: columns.length, width: column.width, expander: column.expander, key: column.key, onClick: () => {
+            return (react_1.default.createElement(Column, { style: column.style, width: column.width, expander: column.expander, key: column.key, onClick: () => {
                     if (column.onClick !== undefined) {
-                        column.onClick(element.id);
+                        column.onClick(element);
                     }
-                    if (column.expander) {
-                        if (expandedRow === element.id) {
-                            setExpandedRow(undefined);
+                    if (column.expander && getRefKey(i)) {
+                        if (expandedRow === getRefKey(i)) {
+                            setExpandedRow(null);
                         }
                         else {
                             if (isScrollable && rowRefs[i]) {
                                 (0, scroll_1.scrollToCurrent)(rowRefs[i]);
                             }
-                            setExpandedRow(element.id);
+                            setExpandedRow(getRefKey(i));
                         }
                     }
-                } }), column.component(column.index ? element[column.index] : element)));
+                } }, column.component(column.index !== undefined
+                ? element[column.index]
+                : element)));
         });
     };
-    //should sort here
     const generateRows = () => {
         let elements = datasource;
         if (elements === undefined) {
@@ -130,24 +144,22 @@ function Table({ expandConfig, nested, isScrollable, infinityScrollConfig, datas
         if (infinityScrollConfig) {
             elements = elements.slice(0, infinityScrollEnd + infinityScrollConfig.gap);
         }
-        return elements.map(element => {
+        return elements.map((element, i) => {
             return (react_1.default.createElement(react_1.default.Fragment, null,
-                react_1.default.createElement(Row, { ref: () => { var _a; return (_a = rowRefs[element.id]) !== null && _a !== void 0 ? _a : null; }, expanded: expandedRow === element.id, key: element.id }, generateColumns(element)),
-                shouldExpandRow(element.id) && expandedContent(element)));
+                react_1.default.createElement(Row, { key: i, ref: rowRefs[i], expanded: isExpanded(i) }, generateColumns(element, i)),
+                isExpanded(i) && expandedContent(element)));
         });
     };
     const generateHeader = () => {
-        return (react_1.default.createElement(Row, null, columns.map(column => {
-            return (react_1.default.createElement(HeaderColumn, { width: column.width },
+        return (react_1.default.createElement(Row, null, columns.map((column, i) => {
+            return (react_1.default.createElement(HeaderColumn, { key: i, width: column.width },
                 react_1.default.createElement("div", null,
                     react_1.default.createElement("label", null, column.headerText))));
         })));
     };
     return (react_1.default.createElement(TableContainer, { isScrollable: isScrollable, ref: () => tableRef, nested: nested },
-        react_1.default.createElement("div", null,
-            react_1.default.createElement("div", null,
-                generateHeader(),
-                generateRows()))));
+        generateHeader(),
+        generateRows()));
 }
 exports.default = Table;
 //# sourceMappingURL=Table.js.map

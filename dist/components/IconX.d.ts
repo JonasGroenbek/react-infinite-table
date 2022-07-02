@@ -5,5 +5,5 @@ interface Props {
     fill?: string;
     style?: CSSProperties;
 }
-declare const _default: ({ width, height, fill, style }: Props) => JSX.Element;
-export default _default;
+declare const IconX: ({ width, height, fill, style }: Props) => JSX.Element;
+export default IconX;
